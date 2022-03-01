@@ -34,8 +34,9 @@ letter_map = {
     ".": ".",
     " ": " ",
     "\n": "\n",
-    "," : ","
+    ",": ",",
 }
+
 
 def letter_sub(cipher_string: str, letter_map: str):
     cipher_string = ciper_string.lower()
@@ -44,6 +45,7 @@ def letter_sub(cipher_string: str, letter_map: str):
         new_string += letter_map[char]
     return new_string
 
+
 if __name__ == "__main__":
-    new_string = letter_sub(ciper_string, letter_map )
+    new_string = letter_sub(ciper_string, letter_map)
     print(new_string)
