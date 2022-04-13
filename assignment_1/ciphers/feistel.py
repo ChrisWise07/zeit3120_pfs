@@ -6,7 +6,9 @@ import numpy as np
 
 
 def text_to_binary(text: str) -> np.ndarray:
-    return "".join(bit for bit in [format(ord(c), "08b") for c in text])
+    return np.array(
+        [bit for bit in "".join(bit for bit in [format(ord(c), "08b") for c in text])]
+    ).astype(np.uint8)
 
 
 def binary_to_text(binary: np.ndarray) -> str:
