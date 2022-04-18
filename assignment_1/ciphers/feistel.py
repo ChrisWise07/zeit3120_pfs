@@ -16,12 +16,30 @@ output_for_file = (
 
 
 def text_to_binary(text: str) -> np.ndarray:
+    """
+    Convert text to binary.
+    
+    Args:
+        text: Text to convert.
+    
+    Returns:
+        Binary representation of text.
+    """
     return np.array(
         [bit for bit in "".join(format(ord(c), "08b") for c in text)]
     ).astype(np.uint8)
 
 
 def binary_to_text(binary: np.ndarray) -> str:
+    """
+    Convert binary to text.
+
+    Args:
+        binary: Binary to convert.
+
+    Returns:
+        Text representation of binary.
+    """
     binary = binary.astype(str)
 
     return "".join(
@@ -31,7 +49,15 @@ def binary_to_text(binary: np.ndarray) -> str:
 
 def generate_subkeys(secret_key: int, length: int, num_blocks: int) -> np.ndarray:
     """
-    Generate subkey.
+    Generate subkeys
+
+    Args:
+        secret_key: Secret key.
+        length: Length of subkey.
+        num_blocks: Number of subkeys.
+    
+    Returns:
+        Subkeys.
     """
     return np.random.default_rng(secret_key).integers(
         2, size=(num_blocks, length), dtype=np.uint8
@@ -45,6 +71,14 @@ def generate_new_feistel_block(
 ) -> Tuple[np.ndarray, np.ndarray]:
     """
     Generate new feistel block.
+
+    Args:
+        left: Left part of feistel block.
+        right: Right part of feistel block.
+        sub_key: Subkey.
+    
+    Returns:
+        New feistel block split into new left and right blocks.
     """
     return right, np.bitwise_xor(np.bitwise_xor(right, sub_key), left)
 
@@ -53,7 +87,14 @@ def perform_feistel_coding(
     text_as_binary: np.ndarray, subkeys: np.ndarray
 ) -> np.ndarray:
     """
-    Encrypt text.
+    Perform feistel coding.
+
+    Args:
+        text_as_binary: Text to encode.
+        subkeys: Subkeys.
+    
+    Returns:
+        Encoded text.
     """
     left, right = np.split(text_as_binary, 2)
 
@@ -72,7 +113,18 @@ def feistel_main(
     **kwargs,
 ) -> np.ndarray:
     """
-    Encrypt text.
+    Main function for feistel cipher.
+
+    Args:
+        text: Text to encode/decode.
+        ofile: Output file.
+        key: Secret key.
+        decode: Decode or encode.
+        num_blocks: Number of blocks.
+        kwargs: Keyword arguments.
+    
+    Returns:
+        Encoded/decoded text.
     """
     if key is None:
         key = "".join(

@@ -8,7 +8,10 @@ from math import gcd
 
 ASCII_OFFSET = ord("a")
 
-# ref
+"""
+Source: 
+http://pi.math.cornell.edu/~mec/2003-2004/cryptography/subs/frequencies.html
+"""
 ENGLISH_LETTER_FREQUENCIES = np.array(
     [
         8.12,
@@ -75,6 +78,20 @@ def _recursive_shifted_row_coincidences_counter(
     coincidence_count: np.array,
     current_index: int,
 ) -> np.array:
+    """
+    Count the number of times coincidences occur in encrypted text.
+
+    Args:
+        encrypted_text (np.array): The encrypted text to count coincidences in.
+        shifted_row (np.array): The shifted row to count coincidences in.
+        coincidence_count (np.array): A list of numbers each representing the
+        number of coincidences for each shifted row.
+        current_index (int): The number of times shifted_row has been shifted.
+    
+    Returns:
+        np.array: A list of numbers each representing the
+        number of coincidences for each shifted row.
+    """
     if shifted_row.size:
         count = 0
         for pos, char in enumerate(shifted_row, start=1):
@@ -115,15 +132,16 @@ def count_shifted_coincidences(encrypted_text: np.array) -> np.array:
 
 def key_length_counter(coincidence_count: np.array) -> Dict[int, int]:
     """
-    Count the key length.
+    Calculate gaps between high coincidence counts whilst
+    recording the number of times gaps of that size have occur number times.
 
     Args:
         coincidence_count (np.array): A list of numbers each representing the
         number of coincidences for each shifted row.
 
     Returns:
-        Dict[int, int]: A dictionary of likey key lengths mapped to appearance
-        frequency.
+        Dict[int, int]: A dictionary of likey key lengths mapped to
+        appearance frequency.
     """
     min_large_count_limit = round(np.max(coincidence_count) - np.std(coincidence_count))
     count_of_possible_key_lengths = {}
@@ -318,6 +336,15 @@ def decrypt_text(encrypted_text: np.ndarray) -> Tuple[np.ndarray, List[List[int]
 
 
 def calculate_chi_squared(sentence: np.ndarray) -> float:
+    """
+    Calculate the chi squared value.
+
+    Args:
+        sentence (np.array): The sentence to calculate the chi squared value for.
+
+    Returns:
+        float: The chi squared value.
+    """
     count_of_letters_in_sentence = collections.Counter(sentence)
     total_chi_squared = 0.0
 
@@ -332,6 +359,15 @@ def calculate_chi_squared(sentence: np.ndarray) -> float:
 
 
 def return_index_of_best_solution(list_of_sentences: np.ndarray) -> int:
+    """
+    Return the index of the best solution.
+
+    Args:
+        list_of_sentences (np.ndarray): The list of sentences to find the best key for.
+
+    Returns:
+        int: The index of the best key.
+    """
     best_chi_squared, index_of_best_solution = float("inf"), 0
 
     for key_index, sentence in enumerate(list_of_sentences):
@@ -346,14 +382,13 @@ def return_index_of_best_solution(list_of_sentences: np.ndarray) -> int:
 
 def return_most_likely_key(encrypted_text: np.ndarray):
     """
-    Solve the Vigenere cipher.
+    Return the most likely key. 
 
     Args:
-        encrypted_text (str): The ciphertext to decrypt.
-        keyword (str): The keyword to use to decrypt the ciphertext.
+        encrypted_text (np.ndarray): The text to decrypt.
 
     Returns:
-        str: The plaintext.
+        List[int]: The most likely key.
     """
     possible_solutions, possible_keys = decrypt_text(encrypted_text=encrypted_text)
 
@@ -367,6 +402,17 @@ def return_most_likely_key(encrypted_text: np.ndarray):
 def apply_key_while_restoring_to_letters(
     text: np.ndarray, key: List[int], mode: int = -1
 ):
+    """
+    Apply the key to the text.
+    
+    Args:
+        text (np.ndarray): The text to apply the key to.
+        key (List[int]): The key to apply.
+        mode (int): The mode -1 being decrypt, 1 being encrypt.
+
+    Returns:
+        np.ndarray: The text with the key applied.
+"""
     len_key = len(key)
     return [
         chr(((char + mode * key[pos % len_key]) % 26) + ASCII_OFFSET)
@@ -405,6 +451,15 @@ def restore_punctuation_to_string(
 
 
 def key_to_string(key_as_alpha_pos: List[int]):
+    """
+    Convert the key to a string.
+
+    Args:
+        key_as_alpha_pos (List[int]): The key to convert.
+
+    Returns:
+        str: The key as a string.
+    """
     key = ""
     for letter in key_as_alpha_pos:
         key += chr(letter + ASCII_OFFSET).upper()
@@ -448,7 +503,17 @@ def vigenere_main(
     text: str, ofile: str, key: str = None, decode: bool = True, **kwargs
 ) -> None:
     """
-    Main function.
+    Main function for the vigenere cipher.
+
+    Args:
+        text (str): The text to encrypt or decrypt.
+        ofile (str): The output file.
+        key (str): The key to use.
+        decode (bool): Whether to decode or not.
+        **kwargs: The keyword arguments.
+
+    Returns:
+        None: None.
     """
     converted_text = convert_text_to_position_in_alphabet(text)
 
