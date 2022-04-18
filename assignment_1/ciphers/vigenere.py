@@ -1,13 +1,14 @@
-from base64 import encode
 from typing import Dict, List, Tuple
 import numpy as np
 import string
 import re
 import collections
 from .utils import file_handler
+from math import gcd
 
 ASCII_OFFSET = ord("a")
 
+# ref
 ENGLISH_LETTER_FREQUENCIES = np.array(
     [
         8.12,
@@ -179,7 +180,7 @@ def count_of_every_nth_letter(
     return letter_count
 
 
-def frequency_of_every_nth_letter(letter_count: np.array) -> np.array:
+def frequency_of_every_nth_letter(letter_count: np.ndarray) -> np.ndarray:
     """
     Calculate the frequency of every nth letter.
 
@@ -198,7 +199,7 @@ def frequency_of_every_nth_letter(letter_count: np.array) -> np.array:
 def find_letter_in_key(
     frequency_of_every_nth_letter: np.array,
     expected_letter_frequency: np.array = ENGLISH_LETTER_FREQUENCIES,
-) -> np.array:
+) -> int:
     """
     Find the letter at the position in the key.
 
@@ -226,9 +227,9 @@ def find_letter_in_key(
 
 
 def find_possible_key(
-    encrypted_text: np.array,
+    encrypted_text: np.ndarray,
     key_length: int,
-) -> np.array:
+) -> List[int]:
     """
     Find the possible key.
 
@@ -263,14 +264,34 @@ def find_all_possible_keys(encrypted_text: np.array) -> List[List[int]]:
     """
     return [
         find_possible_key(encrypted_text, key_length)
-        for key_length in sort_key_lengths(
-            key_length_counter(
-                coincidence_count=count_shifted_coincidences(
-                    encrypted_text=encrypted_text
-                )
-            )
+        for key_length in key_length_counter(
+            coincidence_count=count_shifted_coincidences(encrypted_text=encrypted_text)
         )
     ]
+
+
+def remove_redundant_keys(possible_keys: List[List[int]]) -> List[List[int]]:
+    """
+    Remove redundant keys.
+
+    Args:
+        possible_keys (List[List[int]]): A list of possible keys.
+
+    Returns:
+        List[List[int]]: A list of possible keys without redundant keys.
+    """
+    copy_of_possible_keys = possible_keys.copy()
+
+    for copy_key in copy_of_possible_keys:
+        if copy_key in possible_keys:
+            len_of_copy_key = len(copy_key)
+            for other_key in copy_of_possible_keys:
+                list_length_gcd = gcd(len_of_copy_key, len(other_key))
+                if list_length_gcd > 1:
+                    if other_key[list_length_gcd : list_length_gcd * 2] == copy_key:
+                        possible_keys.remove(other_key)
+
+    return possible_keys
 
 
 def decrypt_text(encrypted_text: np.ndarray) -> Tuple[np.ndarray, List[List[int]]]:
@@ -282,7 +303,7 @@ def decrypt_text(encrypted_text: np.ndarray) -> Tuple[np.ndarray, List[List[int]
     Returns:
         np.array: The decrypted text.
     """
-    possible_keys = find_all_possible_keys(encrypted_text)
+    possible_keys = remove_redundant_keys(find_all_possible_keys(encrypted_text))
     potential_solutions = np.empty(
         (len(possible_keys), encrypted_text.size), dtype=np.int32
     )
@@ -423,7 +444,9 @@ def return_output_for_file(
     )
 
 
-def vigenere_main(text: str, ofile: str, key: str = None, decode: bool = True) -> None:
+def vigenere_main(
+    text: str, ofile: str, key: str = None, decode: bool = True, **kwargs
+) -> None:
     """
     Main function.
     """

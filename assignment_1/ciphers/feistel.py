@@ -3,6 +3,16 @@ import string
 import sys
 from typing import Tuple
 import numpy as np
+from .utils import file_handler
+
+output_for_file = (
+    "-----BEGIN FEISTEL KEY-----\n"
+    "{key}\n"
+    "-----END FEISTEL KEY-----\n\n"
+    "-----BEGIN {mode} TEXT-----\n"
+    "{text}\n"
+    "-----END {mode} TEXT-----\n"
+)
 
 
 def text_to_binary(text: str) -> np.ndarray:
@@ -15,7 +25,7 @@ def binary_to_text(binary: np.ndarray) -> str:
     binary = binary.astype(str)
 
     return "".join(
-        chr(int("".join(binary[i : i + 8]), 2)) for i in range(0, len(binary), 8)
+        chr(int(f"0b{''.join(binary[i : i + 8])}", 2)) for i in range(0, len(binary), 8)
     )
 
 
@@ -54,13 +64,18 @@ def perform_feistel_coding(
 
 
 def feistel_main(
-    text: str, decode: bool, secret_key: str = None, num_blocks: int = 4
+    text: str,
+    ofile: str,
+    key: str = None,
+    decode: bool = True,
+    num_blocks: int = 4,
+    **kwargs,
 ) -> np.ndarray:
     """
     Encrypt text.
     """
-    if secret_key is None:
-        secret_key = "".join(
+    if key is None:
+        key = "".join(
             random.SystemRandom().choice(string.ascii_uppercase + string.digits)
             for _ in range(32)
         )
@@ -69,18 +84,33 @@ def feistel_main(
             f"No key was provided, so generating one for you. Please record the key\n"
             f"---IMPORTANT---\n\n"
             f"-----BEGIN FEISTEL KEY-----\n"
-            f"{secret_key}\n"
+            f"{key}\n"
             f"-----END FEISTEL KEY-----\n\n"
         )
 
     text_as_binary = text_to_binary(text)
 
     subkeys = generate_subkeys(
-        int.from_bytes(secret_key.encode(), byteorder=sys.byteorder),
+        int.from_bytes(key.encode(), byteorder=sys.byteorder),
         text_as_binary.size // 2,
         num_blocks,
     )
+
     if decode:
         subkeys = np.flip(subkeys, axis=0)
+        mode_as_word = "DECODED"
+    else:
+        mode_as_word = "ENCODED"
 
-    return binary_to_text(perform_feistel_coding(text_as_binary, subkeys))
+    text = binary_to_text(perform_feistel_coding(text_as_binary, subkeys))
+
+    output = output_for_file.format(
+        key=key,
+        mode=mode_as_word,
+        text=binary_to_text(perform_feistel_coding(text_as_binary, subkeys)),
+    )
+
+    if ofile:
+        file_handler(path=ofile, mode="w", func=lambda f: f.write(output))
+    else:
+        print(output)

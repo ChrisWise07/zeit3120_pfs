@@ -8,20 +8,20 @@ from main import main
 from ciphers.utils import file_handler
 
 root_directory = os.getcwd()
-test_phrase = "At seventeen minutes past four in the afternoon, whilst the passengers were assembled at lunch in the great saloon, a slight shock was felt on the hull of the Scotia"
-test_phrase_encrypted = "Kx qozcxxcor ksrsdiq zeqd jmev gx xfo eddipxsmx, afspqd xfo tycwcxkcbw uovc kwqoqzvib kx jerar ml dlc qvckx qkpmyr, y cpgqlr clmmo ukw dopr yr rri fepj yj rri Qmsrse"
+test_phrase = "Hello"
+test_phrase_encrypted = "éu\x9147"
 test_decoded_output_file = (
-    f"-----BEGIN VIGENERE KEY-----\n"
+    f"-----BEGIN FEISTEL KEY-----\n"
     f"KEY\n"
-    f"-----END VIGENERE KEY-----\n\n"
+    f"-----END FEISTEL KEY-----\n\n"
     f"-----BEGIN DECODED TEXT-----\n"
     f"{test_phrase}\n"
     f"-----END DECODED TEXT-----\n"
 )
 test_encoded_output_file = (
-    f"-----BEGIN VIGENERE KEY-----\n"
+    f"-----BEGIN FEISTEL KEY-----\n"
     f"KEY\n"
-    f"-----END VIGENERE KEY-----\n\n"
+    f"-----END FEISTEL KEY-----\n\n"
     f"-----BEGIN ENCODED TEXT-----\n"
     f"{test_phrase_encrypted}\n"
     f"-----END ENCODED TEXT-----\n"
@@ -29,30 +29,30 @@ test_encoded_output_file = (
 default_err_msg = "{} has not returned correct output"
 
 
-class vigenere_main_tester(unittest.TestCase):
-    def test_main_encode_vigenere(self):
+class feistel_main_tester(unittest.TestCase):
+    def test_main_encode_feistel(self):
         main(
             args=[
                 "--ifile",
                 os.path.join(
                     root_directory,
-                    "test/sample_text/vigenere_decoded_text_for_test.txt",
+                    "test/sample_text/feistel_decoded_text_for_test.txt",
                 ),
                 "--ofile",
                 os.path.join(
-                    root_directory, "test/sample_text/vigenere_encoded_text.txt"
+                    root_directory, "test/sample_text/feistel_encoded_text.txt"
                 ),
                 "--decode",
                 False,
                 "--cipher",
-                "vigenere",
+                "feistel",
                 "--key",
                 os.path.join(root_directory, "test/sample_text/key.txt"),
             ]
         )
         encoded_text = file_handler(
             path=os.path.join(
-                root_directory, "test/sample_text/vigenere_encoded_text.txt"
+                root_directory, "test/sample_text/feistel_encoded_text.txt"
             ),
             mode="r",
             func=lambda f: f.read(),
@@ -60,59 +60,30 @@ class vigenere_main_tester(unittest.TestCase):
         self.assertEqual(
             encoded_text,
             test_encoded_output_file,
-            default_err_msg.format("main_encode_vigenere"),
+            default_err_msg.format("main_encode_feistel"),
         )
 
-    def test_main_decode_unknown_key_vigenere(self):
+    def test_main_decode_feistel(self):
         main(
             args=[
                 "--ifile",
                 os.path.join(
                     root_directory,
-                    "test/sample_text/vigenere_encoded_text_for_test.txt",
+                    "test/sample_text/feistel_encoded_text_for_test.txt",
                 ),
                 "--ofile",
                 os.path.join(
-                    root_directory, "test/sample_text/vigenere_encoded_text.txt"
+                    root_directory, "test/sample_text/feistel_decoded_text.txt"
                 ),
                 "--cipher",
-                "vigenere",
-            ]
-        )
-        decoded_text = file_handler(
-            path=os.path.join(
-                root_directory, "test/sample_text/vigenere_decoded_text.txt"
-            ),
-            mode="r",
-            func=lambda f: f.read(),
-        )
-        self.assertEqual(
-            decoded_text,
-            test_decoded_output_file,
-            default_err_msg.format("main_decode_unknown_key_vigenere"),
-        )
-
-    def test_main_decode_known_key_vigenere(self):
-        main(
-            args=[
-                "--ifile",
-                os.path.join(
-                    root_directory,
-                    "test/sample_text/vigenere_encoded_text_for_test.txt",
-                ),
-                "--ofile",
-                os.path.join(
-                    root_directory, "test/sample_text/vigenere_encoded_text.txt"
-                ),
-                "--cipher",
-                "vigenere",
+                "feistel",
                 "--key",
                 os.path.join(root_directory, "test/sample_text/key.txt"),
             ]
         )
         decoded_text = file_handler(
             path=os.path.join(
-                root_directory, "test/sample_text/vigenere_decoded_text.txt"
+                root_directory, "test/sample_text/feistel_decoded_text.txt"
             ),
             mode="r",
             func=lambda f: f.read(),
@@ -120,7 +91,7 @@ class vigenere_main_tester(unittest.TestCase):
         self.assertEqual(
             decoded_text,
             test_decoded_output_file,
-            default_err_msg.format("main_decode_unknown_key_vigenere"),
+            default_err_msg.format("main_decode_festel"),
         )
 
     def test_main_no_input_file_raises_error(self):
@@ -130,10 +101,10 @@ class vigenere_main_tester(unittest.TestCase):
             args=[
                 "--ofile",
                 os.path.join(
-                    root_directory, "test/sample_text/vigenere_encoded_text.txt"
+                    root_directory, "test/sample_text/feistel_encoded_text.txt"
                 ),
                 "--cipher",
-                "vigenere",
+                "feistel",
                 "--key",
                 os.path.join(root_directory, "test/sample_text/key.txt"),
             ],
@@ -148,10 +119,10 @@ class vigenere_main_tester(unittest.TestCase):
                 os.path.join(root_directory, "test/sample_text/invalid_file.txt"),
                 "--ofile",
                 os.path.join(
-                    root_directory, "test/sample_text/vigenere_encoded_text.txt"
+                    root_directory, "test/sample_text/feistel_encoded_text.txt"
                 ),
                 "--cipher",
-                "vigenere",
+                "feistel",
                 "--key",
                 os.path.join(root_directory, "test/sample_text/key.txt"),
             ],
@@ -165,11 +136,11 @@ class vigenere_main_tester(unittest.TestCase):
                 "--ifile",
                 os.path.join(
                     root_directory,
-                    "test/sample_text/vigenere_encoded_text_for_test.txt",
+                    "test/sample_text/feistel_encoded_text_for_test.txt",
                 ),
                 "--ofile",
                 os.path.join(
-                    root_directory, "test/sample_text/vigenere_encoded_text.txt"
+                    root_directory, "test/sample_text/feistel_encoded_text.txt"
                 ),
                 "--cipher",
                 "caesar",
@@ -186,18 +157,39 @@ class vigenere_main_tester(unittest.TestCase):
                 "--ifile",
                 os.path.join(
                     root_directory,
-                    "test/sample_text/vigenere_encoded_text_for_test.txt",
+                    "test/sample_text/feistel_encoded_text_for_test.txt",
                 ),
                 "--ofile",
                 os.path.join(
-                    root_directory, "test/sample_text/vigenere_encoded_text.txt"
+                    root_directory, "test/sample_text/feistel_encoded_text.txt"
                 ),
                 "--cipher",
-                "vigenere",
+                "feistel",
                 "--decode",
                 False,
                 "--key",
                 os.path.join(root_directory, "test/sample_text/invalid_key.txt"),
+            ],
+        )
+
+    def test_main_decode_mode_with_no_key(self):
+        self.assertRaises(
+            ValueError,
+            main,
+            args=[
+                "--ifile",
+                os.path.join(
+                    root_directory,
+                    "test/sample_text/feistel_encoded_text_for_test.txt",
+                ),
+                "--ofile",
+                os.path.join(
+                    root_directory, "test/sample_text/feistel_encoded_text.txt"
+                ),
+                "--cipher",
+                "feistel",
+                "--decode",
+                False,
             ],
         )
 

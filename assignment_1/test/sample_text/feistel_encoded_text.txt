@@ -1,0 +1,7 @@
+-----BEGIN FEISTEL KEY-----
+KEY
+-----END FEISTEL KEY-----
+
+-----BEGIN ENCODED TEXT-----
+éu47
+-----END ENCODED TEXT-----

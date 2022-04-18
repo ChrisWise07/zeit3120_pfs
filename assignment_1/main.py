@@ -42,6 +42,12 @@ def parse_args(args) -> argparse.Namespace:
         default=None,
         help="path to the key file (default=None)",
     )
+    parser.add_argument(
+        "--num_blocks",
+        type=int,
+        default=4,
+        help="number of blocks to use for feistel cipher (default=4)",
+    )
 
     return parser.parse_args(args)
 
@@ -68,10 +74,13 @@ def main(args: List[str]) -> None:
         args.key = file_handler(path=args.key, mode="r", func=lambda f: f.read())
 
     cipher_modules_map[args.cipher](
-        file_handler(path=args.ifile, mode="r", func=lambda f: f.read()),
-        args.ofile,
-        args.key,
-        args.decode,
+        **{
+            "text": file_handler(path=args.ifile, mode="r", func=lambda f: f.read()),
+            "ofile": args.ofile,
+            "key": args.key,
+            "decode": args.decode,
+            "num_blocks": args.num_blocks,
+        }
     )
 
 

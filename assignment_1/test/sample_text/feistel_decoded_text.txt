@@ -1,0 +1,7 @@
+-----BEGIN FEISTEL KEY-----
+KEY
+-----END FEISTEL KEY-----
+
+-----BEGIN DECODED TEXT-----
+Hello
+-----END DECODED TEXT-----

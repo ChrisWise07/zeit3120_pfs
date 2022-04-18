@@ -1,6 +1,7 @@
 from ast import Lambda
 from typing import Callable, Dict
 import unittest
+from unittest import result
 import numpy as np
 import os
 from ciphers.utils import file_handler
@@ -21,6 +22,7 @@ from ciphers.vigenere import (
     restore_punctuation_to_string,
     vigenere_main,
     apply_key_while_restoring_to_letters,
+    remove_redundant_keys,
 )
 
 brown_fox_text = "The quick brown fox \njumps over the lazy dog!"
@@ -417,21 +419,6 @@ class vigenere_tester(unittest.TestCase):
             default_err_msg.format("Key length counter"),
         )
 
-    def test_key_length_sorter(self):
-        possible_key_lengths = key_length_counter(
-            coincidence_count=count_shifted_coincidences(
-                encrypted_text=(
-                    convert_text_to_position_in_alphabet(text=test_phrase_encrypted)
-                )
-            )
-        )
-
-        self.assertEqual(
-            sort_key_lengths(possible_key_lengths),
-            [3, 6, 4, 24],
-            default_err_msg.format("Key length sorter"),
-        )
-
     def test_count_of_every_nth_letter(self):
         self.numpy_array_equality_tester(
             func=count_of_every_nth_letter,
@@ -549,7 +536,7 @@ class vigenere_tester(unittest.TestCase):
             ),
         )
         self.assertEqual(
-            result[0],
+            result[2],
             [10, 4, 24],
             default_err_msg.format("Find all possible keys"),
         )
@@ -557,6 +544,20 @@ class vigenere_tester(unittest.TestCase):
             len(result),
             4,
             default_err_msg.format("Find all possible keys"),
+        )
+
+    def test_remove_redundant_keys(self):
+        self.assertEqual(
+            remove_redundant_keys(
+                [
+                    [10, 4, 26, 27],
+                    [10, 4, 24],
+                    [10, 4, 24] * 2,
+                    [10, 4, 24] * 3,
+                ],
+            ),
+            [[10, 4, 26, 27], [10, 4, 24]],
+            default_err_msg.format("Remove redundant keys"),
         )
 
     def test_decrypt_text(self):
@@ -569,7 +570,7 @@ class vigenere_tester(unittest.TestCase):
             len(potential_solutions[0]), 134, default_err_msg.format("Decrypt text")
         )
         self.assertEqual(
-            len(potential_solutions), 4, default_err_msg.format("Decrypt text")
+            len(potential_solutions), 3, default_err_msg.format("Decrypt text")
         )
 
     def test_return_index_of_best_key(self):
@@ -580,7 +581,7 @@ class vigenere_tester(unittest.TestCase):
         )
         best_key = return_index_of_best_solution(list_of_sentences=potential_solutions)
         self.assertEqual(
-            best_key, 0, default_err_msg.format("Return index of best key")
+            best_key, 1, default_err_msg.format("Return index of best key")
         )
 
     def test_solve_vigenere(self):

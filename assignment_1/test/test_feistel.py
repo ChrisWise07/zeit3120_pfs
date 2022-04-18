@@ -151,28 +151,6 @@ class feistel_tester(unittest.TestCase):
             err_message=default_err_msg.format("perform_feistel_encoding"),
         )
 
-    def test_feistel_main(self):
-        cipher_text = feistel_main(text=simple_pharse, secret_key="key", decode=False)
-        self.assertEqual(
-            feistel_main(text=cipher_text, secret_key="key", decode=True),
-            simple_pharse,
-            default_err_msg.format("feistel_main"),
-        )
-
-        complex_cipher_text = feistel_main(
-            text=brown_fox_text, secret_key="longerkey", decode=False
-        )
-        self.assertEqual(
-            feistel_main(text=complex_cipher_text, secret_key="longerkey", decode=True),
-            brown_fox_text,
-            default_err_msg.format("feistel_main"),
-        )
-        self.assertNotEqual(
-            feistel_main(text=complex_cipher_text, secret_key="wrongkey", decode=True),
-            brown_fox_text,
-            default_err_msg.format("feistel_main"),
-        )
-
 
 if __name__ == "__main__":
     unittest.main()
