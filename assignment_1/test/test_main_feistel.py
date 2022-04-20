@@ -1,30 +1,27 @@
-from base64 import encode
-import unittest
+﻿import unittest
 import os
 import sys
 
 sys.path.append(os.path.join(os.path.dirname(os.path.dirname(__file__)), "main.py"))
 from main import main
-from ciphers.utils import file_handler
+from ciphers.utils import file_handler, output_for_file
 
 root_directory = os.getcwd()
 test_phrase = "Hello"
-test_phrase_encrypted = "éu\x9147"
-test_decoded_output_file = (
-    f"-----BEGIN FEISTEL KEY-----\n"
-    f"KEY\n"
-    f"-----END FEISTEL KEY-----\n\n"
-    f"-----BEGIN DECODED TEXT-----\n"
-    f"{test_phrase}\n"
-    f"-----END DECODED TEXT-----\n"
+non_ascii_test_phrase = "Hèllo"
+test_phrase_encrypted = "éu47"
+non_ascii_test_phrase_encrypted = "`Ö"
+test_decoded_output_file = output_for_file.format(
+    cipher="FEISTEL", key="KEY", mode="DECODED", text=test_phrase
 )
-test_encoded_output_file = (
-    f"-----BEGIN FEISTEL KEY-----\n"
-    f"KEY\n"
-    f"-----END FEISTEL KEY-----\n\n"
-    f"-----BEGIN ENCODED TEXT-----\n"
-    f"{test_phrase_encrypted}\n"
-    f"-----END ENCODED TEXT-----\n"
+test_non_ascii_decoded_output_file = output_for_file.format(
+    cipher="FEISTEL", key="KèY", mode="DECODED", text=non_ascii_test_phrase
+)
+test_encoded_output_file = output_for_file.format(
+    cipher="FEISTEL", key="KEY", mode="ENCODED", text=test_phrase_encrypted
+)
+test_non_ascii_encoded_output_file = output_for_file.format(
+    cipher="FEISTEL", key="KèY", mode="ENCODED", text=non_ascii_test_phrase_encrypted
 )
 default_err_msg = "{} has not returned correct output"
 
@@ -43,7 +40,7 @@ class feistel_main_tester(unittest.TestCase):
                     root_directory, "test/sample_text/feistel_encoded_text.txt"
                 ),
                 "--decode",
-                False,
+                "False",
                 "--cipher",
                 "feistel",
                 "--key",
@@ -91,6 +88,41 @@ class feistel_main_tester(unittest.TestCase):
         self.assertEqual(
             decoded_text,
             test_decoded_output_file,
+            default_err_msg.format("main_decode_festel"),
+        )
+
+    def test_main_encode_feistel_non_ascii(self):
+        main(
+            args=[
+                "--ifile",
+                os.path.join(
+                    root_directory,
+                    "test/sample_text/non_ascii_feistel_decoded_text_for_test.txt",
+                ),
+                "--ofile",
+                os.path.join(
+                    root_directory,
+                    "test/sample_text/feistel_encoded_text_non_ascii_input.txt",
+                ),
+                "--cipher",
+                "feistel",
+                "--key",
+                os.path.join(root_directory, "test/sample_text/non_ascii_key.txt"),
+                "--decode",
+                False,
+            ]
+        )
+        encoded_text = file_handler(
+            path=os.path.join(
+                root_directory,
+                "test/sample_text/feistel_encoded_text_non_ascii_input.txt",
+            ),
+            mode="r",
+            func=lambda f: f.read(),
+        )
+        self.assertEqual(
+            encoded_text,
+            test_non_ascii_encoded_output_file,
             default_err_msg.format("main_decode_festel"),
         )
 

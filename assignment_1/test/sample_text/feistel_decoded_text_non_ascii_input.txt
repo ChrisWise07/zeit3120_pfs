@@ -1,0 +1,7 @@
+-----BEGIN FEISTEL KEY-----
+KèY
+-----END FEISTEL KEY-----
+
+-----BEGIN DECODED TEXT-----
+õb©
+-----END DECODED TEXT-----

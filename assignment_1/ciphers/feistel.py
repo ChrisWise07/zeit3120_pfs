@@ -3,27 +3,18 @@ import string
 import sys
 from typing import Tuple
 import numpy as np
-from .utils import file_handler
-
-output_for_file = (
-    "-----BEGIN FEISTEL KEY-----\n"
-    "{key}\n"
-    "-----END FEISTEL KEY-----\n\n"
-    "-----BEGIN {mode} TEXT-----\n"
-    "{text}\n"
-    "-----END {mode} TEXT-----\n"
-)
+from .utils import file_handler, output_for_file
 
 
 def text_to_binary(text: str) -> np.ndarray:
     """
     Convert text to binary.
-    
+
     Args:
         text: Text to convert.
-    
+
     Returns:
-        Binary representation of text.
+        ndarray: Binary representation of text.
     """
     return np.array(
         [bit for bit in "".join(format(ord(c), "08b") for c in text)]
@@ -38,7 +29,7 @@ def binary_to_text(binary: np.ndarray) -> str:
         binary: Binary to convert.
 
     Returns:
-        Text representation of binary.
+        str: Text representation of binary.
     """
     binary = binary.astype(str)
 
@@ -55,9 +46,9 @@ def generate_subkeys(secret_key: int, length: int, num_blocks: int) -> np.ndarra
         secret_key: Secret key.
         length: Length of subkey.
         num_blocks: Number of subkeys.
-    
+
     Returns:
-        Subkeys.
+        nparray: Subkeys.
     """
     return np.random.default_rng(secret_key).integers(
         2, size=(num_blocks, length), dtype=np.uint8
@@ -76,9 +67,9 @@ def generate_new_feistel_block(
         left: Left part of feistel block.
         right: Right part of feistel block.
         sub_key: Subkey.
-    
+
     Returns:
-        New feistel block split into new left and right blocks.
+        Tuple[ndarray, ndarray]: New feistel block split into new left and right blocks.
     """
     return right, np.bitwise_xor(np.bitwise_xor(right, sub_key), left)
 
@@ -92,9 +83,9 @@ def perform_feistel_coding(
     Args:
         text_as_binary: Text to encode.
         subkeys: Subkeys.
-    
+
     Returns:
-        Encoded text.
+        ndarray: Encoded text.
     """
     left, right = np.split(text_as_binary, 2)
 
@@ -111,7 +102,7 @@ def feistel_main(
     decode: bool = True,
     num_blocks: int = 4,
     **kwargs,
-) -> np.ndarray:
+) -> None:
     """
     Main function for feistel cipher.
 
@@ -122,9 +113,9 @@ def feistel_main(
         decode: Decode or encode.
         num_blocks: Number of blocks.
         kwargs: Keyword arguments.
-    
+
     Returns:
-        Encoded/decoded text.
+        None: None.
     """
     if key is None:
         key = "".join(
@@ -157,6 +148,7 @@ def feistel_main(
     text = binary_to_text(perform_feistel_coding(text_as_binary, subkeys))
 
     output = output_for_file.format(
+        cipher="FEISTEL",
         key=key,
         mode=mode_as_word,
         text=binary_to_text(perform_feistel_coding(text_as_binary, subkeys)),

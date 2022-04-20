@@ -1,0 +1,7 @@
+-----BEGIN FEISTEL KEY-----
+KèY
+-----END FEISTEL KEY-----
+
+-----BEGIN ENCODED TEXT-----
+`Ö
+-----END ENCODED TEXT-----

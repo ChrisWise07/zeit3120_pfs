@@ -26,9 +26,9 @@ def parse_args(args) -> argparse.Namespace:
     )
     parser.add_argument(
         "--decode",
-        type=bool,
-        default=True,
-        help="decode the input file if true else the input file is encoded(default=True)",
+        type=str,
+        default="True",
+        help="decode the input file if true else the input file is encoded (default=True)",
     )
     parser.add_argument(
         "--cipher",
@@ -40,7 +40,10 @@ def parse_args(args) -> argparse.Namespace:
         "--key",
         type=str,
         default=None,
-        help="path to the key file (default=None)",
+        help=(
+            "path to the key file (default=None) "
+            "Note: If no key is specified for the vigenere encoding then the key will be cracked"
+        ),
     )
     parser.add_argument(
         "--num_blocks",
@@ -63,10 +66,17 @@ def perform_checks(args):
         raise ValueError("No key specified for encode mode")
     if args.key and not (os.path.exists(args.key)):
         raise ValueError("Key file does not exist or the path provided is incorrect")
+    if args.cipher == "feistel" and args.key is None:
+        raise ValueError("No key specified for feistel cipher")
 
 
 def main(args: List[str]) -> None:
     args = parse_args(args)
+
+    if args.decode == "True" or args.decode == "true":
+        args.decode = True
+    else:
+        args.decode = False
 
     perform_checks(args)
 

@@ -1,56 +1,49 @@
-from typing import Dict, List, Tuple
+from typing import Dict, List
 import numpy as np
 import string
 import re
-import collections
-from .utils import file_handler
-from math import gcd
+from .utils import file_handler, output_for_file
+from unidecode import unidecode
+from warnings import warn
 
 ASCII_OFFSET = ord("a")
 
 """
 Source: 
-http://pi.math.cornell.edu/~mec/2003-2004/cryptography/subs/frequencies.html
+https://www.sttmedia.com/characterfrequency-english
 """
 ENGLISH_LETTER_FREQUENCIES = np.array(
     [
-        8.12,
-        1.49,
-        2.71,
-        4.32,
-        12.0,
-        2.3,
-        2.03,
-        5.92,
-        7.31,
-        0.1,
-        0.69,
-        3.98,
-        2.61,
-        6.95,
-        7.68,
-        1.82,
-        0.11,
-        6.02,
-        6.28,
-        9.1,
-        2.88,
-        1.11,
-        2.09,
-        0.17,
-        2.11,
-        0.07,
+        0.0834,
+        0.0154,
+        0.0273,
+        0.0414,
+        0.126,
+        0.0203,
+        0.0192,
+        0.0611,
+        0.0671,
+        0.0023,
+        0.0087,
+        0.0424,
+        0.0253,
+        0.068,
+        0.077,
+        0.0166,
+        0.0009,
+        0.0568,
+        0.0611,
+        0.0937,
+        0.0285,
+        0.0106,
+        0.0234,
+        0.002,
+        0.0204,
+        0.0006,
     ]
 )
 
-output_for_file = (
-    "-----BEGIN VIGENERE KEY-----\n"
-    "{key}\n"
-    "-----END VIGENERE KEY-----\n\n"
-    "-----BEGIN {mode} TEXT-----\n"
-    "{text}\n"
-    "-----END {mode} TEXT-----\n"
-)
+CHI_SQUARED_LIMIT = 50.00
 
 
 def convert_text_to_position_in_alphabet(text: str) -> np.ndarray:
@@ -63,80 +56,48 @@ def convert_text_to_position_in_alphabet(text: str) -> np.ndarray:
     Returns:
         list: A list of numbers each representing a letter's position in alphabet.
     """
-
     stripped_string = (
         re.sub(r"\s+", "", text)
         .lower()
         .translate(str.maketrans("", "", string.punctuation))
+        .translate(str.maketrans("", "", string.digits))
     )
     return np.array([ord(c) - ASCII_OFFSET for c in stripped_string])
 
 
-def _recursive_shifted_row_coincidences_counter(
-    encrypted_text: np.array,
-    shifted_row: np.array,
-    coincidence_count: np.array,
-    current_index: int,
-) -> np.array:
+def count_shifted_coincidences(encrypted_text: np.ndarray) -> np.ndarray:
     """
     Count the number of times coincidences occur in encrypted text.
 
     Args:
-        encrypted_text (np.array): The encrypted text to count coincidences in.
-        shifted_row (np.array): The shifted row to count coincidences in.
-        coincidence_count (np.array): A list of numbers each representing the
-        number of coincidences for each shifted row.
-        current_index (int): The number of times shifted_row has been shifted.
-    
+        encrypted_text (np.ndarray): The encrypted text to count coincidences in.
+
     Returns:
-        np.array: A list of numbers each representing the
+        np.ndarray: A list of numbers each representing the
         number of coincidences for each shifted row.
     """
-    if shifted_row.size:
+    coincidence_count = np.zeros(encrypted_text.size - 1)
+    shifted_row = encrypted_text[:-1]
+
+    for n in range(1, len(encrypted_text)):
         count = 0
-        for pos, char in enumerate(shifted_row, start=1):
-            if char == encrypted_text[current_index + pos]:
+
+        for pos, char in enumerate(shifted_row):
+            if char == encrypted_text[n + pos]:
                 count += 1
-
-        coincidence_count[current_index] = count
-        current_index += 1
-
-        _recursive_shifted_row_coincidences_counter(
-            encrypted_text=encrypted_text,
-            shifted_row=shifted_row[:-1],
-            coincidence_count=coincidence_count,
-            current_index=current_index,
-        )
+        coincidence_count[n - 1] = count
+        shifted_row = shifted_row[:-1]
 
     return coincidence_count
 
 
-def count_shifted_coincidences(encrypted_text: np.array) -> np.array:
-    """
-    Count the number of times coincidences occur in encrypted text.
-
-    Args:
-        encrypted_text (np.array): The encrypted text to count coincidences in.
-
-    Returns:
-        np.array: A list of numbers each representing the
-        number of coincidences for each shifted row.
-    """
-    return _recursive_shifted_row_coincidences_counter(
-        encrypted_text=encrypted_text,
-        shifted_row=encrypted_text[:-1],
-        coincidence_count=np.zeros(encrypted_text.size - 1, dtype=np.int32),
-        current_index=0,
-    )
-
-
-def key_length_counter(coincidence_count: np.array) -> Dict[int, int]:
+def key_length_counter(coincidence_count: np.ndarray) -> Dict[int, int]:
     """
     Calculate gaps between high coincidence counts whilst
-    recording the number of times gaps of that size have occur number times.
+    recording the number of times gaps of that size have occured.
 
     Args:
-        coincidence_count (np.array): A list of numbers each representing the
+        coincidence_count (np.ndarray): A list of numbers each representing the
         number of coincidences for each shifted row.
 
     Returns:
@@ -175,19 +136,43 @@ def sort_key_lengths(key_lengths: Dict[int, int]) -> List[int]:
     return [v[0] for v in sorted(key_lengths.items(), key=lambda kv: (-kv[1], kv[0]))]
 
 
+def prune_possible_keys(sorted_key_lengths: List[int]) -> List[int]:
+    """
+    Prune the possible key lengths.
+
+    Args:
+        sort_keys (List[int]): A list of key lengths sorted first by appearance frequency than length.
+
+    Returns:
+        List: A list of key lengths pruned.
+    """
+    list_to_check = sorted_key_lengths[1:]
+    element_number = 0
+
+    while len(list_to_check):
+        key_length = sorted_key_lengths[element_number]
+        for other_key_length in list_to_check:
+            if other_key_length % key_length == 0:
+                sorted_key_lengths.remove(other_key_length)
+        element_number += 1
+        list_to_check = sorted_key_lengths[element_number + 1 :]
+
+    return sorted_key_lengths
+
+
 def count_of_every_nth_letter(
-    encrypted_text: np.array, n: int, start_index: int
-) -> np.array:
+    encrypted_text: np.ndarray, n: int, start_index: int
+) -> np.ndarray:
     """
     Count the frequency of letters searching every nth letter.
 
     Args:
-        encrypted_text (np.array): The text to count letters in.
+        encrypted_text (np.ndarray): The text to count letters in.
         n (int): The nth letter to count.
         start_index (int): The start point to count from.
 
     Returns:
-        np.array: A list of numbers each representing the frequency of the letter at the
+        np.ndarray: A list of numbers each representing the frequency of the letter at the
         analgous index in alphabet (a=0, b=1, c=2, etc), when counting every nth letter.
     """
     letter_count = np.zeros((26,), dtype=np.int32)
@@ -203,33 +188,33 @@ def frequency_of_every_nth_letter(letter_count: np.ndarray) -> np.ndarray:
     Calculate the frequency of every nth letter.
 
     Args:
-        letter_count (np.array): A list of numbers each representing the frequency of
+        letter_count (np.ndarray): A list of numbers each representing the frequency of
         the letter at the analgous index in alphabet (a=0, b=1, c=2, etc), when counting
         every nth letter.
 
     Returns:
-        np.array: A list of numbers each representing the frequency of the letter at the
+        np.ndarray: A list of numbers each representing the frequency of the letter at the
         analgous index in alphabet (a=0, b=1, c=2, etc), when counting every nth letter.
     """
     return letter_count / np.sum(letter_count)
 
 
 def find_letter_in_key(
-    frequency_of_every_nth_letter: np.array,
-    expected_letter_frequency: np.array = ENGLISH_LETTER_FREQUENCIES,
+    frequency_of_every_nth_letter: np.ndarray,
+    expected_letter_frequency: np.ndarray = ENGLISH_LETTER_FREQUENCIES,
 ) -> int:
     """
     Find the letter at the position in the key.
 
     Args:
-        frequency_of_every_nth_letter (np.array): A list of numbers each representing the
+        frequency_of_every_nth_letter (np.ndarray): A list of numbers each representing the
         frequency of the letter at the analgous index in alphabet (a=0, b=1, c=2, etc), when
         counting every nth letter.
         key_length (int): The length of the key.
         start_index (int): The start point to count from.
 
     Returns:
-        np.array: A list of numbers each representing the frequency of the letter at the
+        np.ndarray: A list of numbers each representing the frequency of the letter at the
         analgous index in alphabet (a=0, b=1, c=2, etc), when counting every nth letter.
     """
     max_value = float("-inf")
@@ -252,11 +237,11 @@ def find_possible_key(
     Find the possible key.
 
     Args:
-        encrypted_text (np.array): The text to decrypt.
+        encrypted_text (np.ndarray): The text to decrypt.
         key_length (int): The length of the key.
 
     Returns:
-        np.array: A possible key.
+        np.ndarray: A possible key.
     """
     return [
         find_letter_in_key(
@@ -270,69 +255,24 @@ def find_possible_key(
     ]
 
 
-def find_all_possible_keys(encrypted_text: np.array) -> List[List[int]]:
+def return_solution_for_key(key: List[int], encrypted_text: np.ndarray) -> np.ndarray:
     """
-    Find all possible keys.
+    Return the solution for the key.
 
     Args:
-        encrypted_text (np.array): The text to decrypt.
+        key (List[int]): The key for decryption.
+        encrypted_text (np.ndarray): The text to decrypt.
 
     Returns:
-        List[List[int]]: A list of possible keys.
+        np.ndarray: The decrypted text as array of numbers representing letter
+        position in alphabet.
     """
-    return [
-        find_possible_key(encrypted_text, key_length)
-        for key_length in key_length_counter(
-            coincidence_count=count_shifted_coincidences(encrypted_text=encrypted_text)
-        )
-    ]
+    potential_solution = np.empty((encrypted_text.size,), dtype=np.uint8)
 
+    for pos, char in enumerate(encrypted_text):
+        potential_solution[pos] = (char - key[pos % len(key)]) % 26
 
-def remove_redundant_keys(possible_keys: List[List[int]]) -> List[List[int]]:
-    """
-    Remove redundant keys.
-
-    Args:
-        possible_keys (List[List[int]]): A list of possible keys.
-
-    Returns:
-        List[List[int]]: A list of possible keys without redundant keys.
-    """
-    copy_of_possible_keys = possible_keys.copy()
-
-    for copy_key in copy_of_possible_keys:
-        if copy_key in possible_keys:
-            len_of_copy_key = len(copy_key)
-            for other_key in copy_of_possible_keys:
-                list_length_gcd = gcd(len_of_copy_key, len(other_key))
-                if list_length_gcd > 1:
-                    if other_key[list_length_gcd : list_length_gcd * 2] == copy_key:
-                        possible_keys.remove(other_key)
-
-    return possible_keys
-
-
-def decrypt_text(encrypted_text: np.ndarray) -> Tuple[np.ndarray, List[List[int]]]:
-    """
-    Decrypt the text.
-
-    Args:
-        encrypted_text_as_nums: (np.array): The text to decrypt.
-    Returns:
-        np.array: The decrypted text.
-    """
-    possible_keys = remove_redundant_keys(find_all_possible_keys(encrypted_text))
-    potential_solutions = np.empty(
-        (len(possible_keys), encrypted_text.size), dtype=np.int32
-    )
-
-    for possible_key, potential_solution in zip(possible_keys, potential_solutions):
-        for pos, char in enumerate(encrypted_text):
-            potential_solution[pos] = (
-                char - possible_key[pos % len(possible_key)]
-            ) % 26
-
-    return potential_solutions, possible_keys
+    return potential_solution
 
 
 def calculate_chi_squared(sentence: np.ndarray) -> float:
@@ -340,63 +280,66 @@ def calculate_chi_squared(sentence: np.ndarray) -> float:
     Calculate the chi squared value.
 
     Args:
-        sentence (np.array): The sentence to calculate the chi squared value for.
+        sentence (np.ndarray): The sentence to calculate the chi squared value for.
 
     Returns:
         float: The chi squared value.
     """
-    count_of_letters_in_sentence = collections.Counter(sentence)
-    total_chi_squared = 0.0
-
-    for pos, char_frequency in enumerate(ENGLISH_LETTER_FREQUENCIES):
-        expected_number = (char_frequency / 100) * len(sentence)
-        count_of_letter_in_sentence = int(count_of_letters_in_sentence[pos])
-        total_chi_squared += (
-            (count_of_letter_in_sentence - expected_number) ** 2
-        ) / expected_number
-
-    return total_chi_squared
+    observed_frequency = np.bincount(sentence, minlength=26)
+    expected_frequency = ENGLISH_LETTER_FREQUENCIES * sentence.size
+    return np.sum(
+        np.square(observed_frequency - expected_frequency) / expected_frequency
+    )
 
 
-def return_index_of_best_solution(list_of_sentences: np.ndarray) -> int:
+def return_sorted_possible_key_lengths(
+    encrypted_text: np.ndarray,
+) -> List[int]:
     """
-    Return the index of the best solution.
-
-    Args:
-        list_of_sentences (np.ndarray): The list of sentences to find the best key for.
-
-    Returns:
-        int: The index of the best key.
-    """
-    best_chi_squared, index_of_best_solution = float("inf"), 0
-
-    for key_index, sentence in enumerate(list_of_sentences):
-        chi_squared_score = calculate_chi_squared(sentence)
-
-        if chi_squared_score < best_chi_squared:
-            best_chi_squared = chi_squared_score
-            index_of_best_solution = key_index
-
-    return index_of_best_solution
-
-
-def return_most_likely_key(encrypted_text: np.ndarray):
-    """
-    Return the most likely key. 
+    Return the possible key lengths.
 
     Args:
         encrypted_text (np.ndarray): The text to decrypt.
 
     Returns:
-        List[int]: The most likely key.
+        List[int]: The possible key lengths.
     """
-    possible_solutions, possible_keys = decrypt_text(encrypted_text=encrypted_text)
-
-    index_of_best_solution = return_index_of_best_solution(
-        list_of_sentences=possible_solutions
+    return sort_key_lengths(
+        key_length_counter(
+            coincidence_count=count_shifted_coincidences(encrypted_text=encrypted_text)
+        )
     )
 
-    return possible_keys[index_of_best_solution]
+
+def return_best_key(encrypted_text: np.ndarray):
+    """
+    Return the most likely key.
+
+    Args:
+        encrypted_text (np.ndarray): The text to decrypt.
+
+    Returns:
+        List[int]: The best key.
+    """
+    best_chi_squared = float("inf")
+
+    for possible_key_length in prune_possible_keys(
+        return_sorted_possible_key_lengths(encrypted_text)
+    ):
+        possible_key = find_possible_key(
+            encrypted_text=encrypted_text, key_length=possible_key_length
+        )
+        possible_solution = return_solution_for_key(
+            key=possible_key, encrypted_text=encrypted_text
+        )
+
+        chi_squared_score = calculate_chi_squared(sentence=possible_solution)
+
+        if chi_squared_score < best_chi_squared:
+            best_chi_squared = chi_squared_score
+            best_key = possible_key
+
+    return best_key
 
 
 def apply_key_while_restoring_to_letters(
@@ -404,15 +347,14 @@ def apply_key_while_restoring_to_letters(
 ):
     """
     Apply the key to the text.
-    
+
     Args:
         text (np.ndarray): The text to apply the key to.
         key (List[int]): The key to apply.
         mode (int): The mode -1 being decrypt, 1 being encrypt.
 
     Returns:
-        np.ndarray: The text with the key applied.
-"""
+        np.ndarray: The text with the key applied."""
     len_key = len(key)
     return [
         chr(((char + mode * key[pos % len_key]) % 26) + ASCII_OFFSET)
@@ -433,7 +375,7 @@ def restore_punctuation_to_string(
     Returns:
         str: The decrypted string with punctuation restored.
     """
-    original_string = original_string.split()
+    original_string = re.findall(r"\S+|\n", original_string)
     restored_string = ""
 
     for word in original_string:
@@ -462,9 +404,9 @@ def key_to_string(key_as_alpha_pos: List[int]):
     """
     key = ""
     for letter in key_as_alpha_pos:
-        key += chr(letter + ASCII_OFFSET).upper()
+        key += chr(letter + ASCII_OFFSET)
 
-    return key
+    return key.upper()
 
 
 def return_output_for_file(
@@ -488,6 +430,7 @@ def return_output_for_file(
         str: The output for the file.
     """
     return output_for_file.format(
+        cipher="VIGENERE",
         key=key_to_string(key),
         mode=mode_as_word,
         text=restore_punctuation_to_string(
@@ -497,6 +440,24 @@ def return_output_for_file(
             ),
         ),
     )
+
+
+def replace_non_ascii_with_alike_char(text: str) -> str:
+    """
+    Replace non-ascii characters with a similar character.
+
+    Args:
+        text (str): The text to replace non-ascii characters in.
+
+    Returns:
+        str: The text with non-ascii characters replaced.
+    """
+    warn(
+        "Non-Enlgish character detected. Vigenere cipher currently works only "
+        "with ASCII/English text. All non-English characters will be replaced "
+        "with an alike representation.",
+    )
+    return unidecode(text)
 
 
 def vigenere_main(
@@ -515,12 +476,18 @@ def vigenere_main(
     Returns:
         None: None.
     """
+
+    if not (text.isascii()):
+        text = replace_non_ascii_with_alike_char(text)
+
     converted_text = convert_text_to_position_in_alphabet(text)
 
-    if key:
+    if key is not None:
+        if not (key.isascii()):
+            key = replace_non_ascii_with_alike_char(key)
         key = convert_text_to_position_in_alphabet(key)
     else:
-        key = return_most_likely_key(encrypted_text=converted_text)
+        key = return_best_key(encrypted_text=converted_text)
 
     if decode:
         output_for_file = return_output_for_file(
