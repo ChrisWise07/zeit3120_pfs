@@ -21,7 +21,7 @@ def parse_args(args) -> argparse.Namespace:
         default=None,
         help=(
             "path to output file with text that is encoded/decoded (default=None) "
-            "Note: if --of is not specified, the output will be printed to stdout"
+            "Note: if --ofile is not specified, the output will be printed to stdout"
         ),
     )
     parser.add_argument(

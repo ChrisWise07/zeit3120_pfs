@@ -400,7 +400,7 @@ class vigenere_tester(unittest.TestCase):
 
         self.assertEqual(
             key_length_counter(coincidence_count=coincidence_count),
-            {4: 1, 6: 2, 3: 2, 24: 1},
+            {1: 2, 2: 1, 3: 6, 5: 4, 6: 4, 9: 1, 15: 3},
             default_err_msg.format("Key length counter"),
         )
 
@@ -521,7 +521,7 @@ class vigenere_tester(unittest.TestCase):
                     text=test_phrase_encrypted
                 )
             ),
-            [3, 6, 4, 24],
+            [3, 5, 6, 15, 1, 2, 9],
             default_err_msg.format("Return sorted key lengths"),
         )
 

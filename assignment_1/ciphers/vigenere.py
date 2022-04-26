@@ -43,7 +43,7 @@ ENGLISH_LETTER_FREQUENCIES = np.array(
     ]
 )
 
-CHI_SQUARED_LIMIT = 50.00
+CHI_SQUARED_LIMIT = 1.00
 
 
 def convert_text_to_position_in_alphabet(text: str) -> np.ndarray:
@@ -108,7 +108,7 @@ def key_length_counter(coincidence_count: np.ndarray) -> Dict[int, int]:
     pos_previous_large_count = 0
 
     for pos, count in enumerate(coincidence_count):
-        min_large_count_limit = 4.0 * (len(coincidence_count) - pos) * (1/52)
+        min_large_count_limit = 4.0 * (len(coincidence_count) - pos) * (1 / 52)
         if count >= min_large_count_limit:
             if pos_previous_large_count:
                 large_count_gap = pos - pos_previous_large_count
@@ -329,11 +329,15 @@ def return_best_key(encrypted_text: np.ndarray):
         possible_key = find_possible_key(
             encrypted_text=encrypted_text, key_length=possible_key_length
         )
+
         possible_solution = return_solution_for_key(
             key=possible_key, encrypted_text=encrypted_text
         )
 
         chi_squared_score = calculate_chi_squared(sentence=possible_solution)
+
+        if (chi_squared_score / len(encrypted_text)) < CHI_SQUARED_LIMIT:
+            return possible_key
 
         if chi_squared_score < best_chi_squared:
             best_chi_squared = chi_squared_score
