@@ -104,11 +104,11 @@ def key_length_counter(coincidence_count: np.ndarray) -> Dict[int, int]:
         Dict[int, int]: A dictionary of likey key lengths mapped to
         appearance frequency.
     """
-    min_large_count_limit = round(np.max(coincidence_count) - np.std(coincidence_count))
     count_of_possible_key_lengths = {}
     pos_previous_large_count = 0
 
     for pos, count in enumerate(coincidence_count):
+        min_large_count_limit = 4.0 * (len(coincidence_count) - pos) * (1/52)
         if count >= min_large_count_limit:
             if pos_previous_large_count:
                 large_count_gap = pos - pos_previous_large_count
