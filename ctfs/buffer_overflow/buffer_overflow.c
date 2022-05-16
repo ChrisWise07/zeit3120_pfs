@@ -4,11 +4,11 @@
 
 void winner()
 {
-printf("flow changed\n");
+    printf("flow changed\n");
 }
 int main(int argc, char **argv)
 {
-char buffer[50];
-gets(buffer);
-printf("exit\n");
+    char buffer[50];
+    strcpy(buffer, argv[1]);
+    printf("exit\n");
 }
