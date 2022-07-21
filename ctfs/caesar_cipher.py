@@ -1,10 +1,9 @@
 import collections
 
-
 alphabet = "abcdefghijklmnopqrstuvwxyz"
 
 enc_string = """
-pdeo eo w oaynap iaoowca!
+YDEEYJRVYQKZRQJPYKRKLXEPKKDCYEDRGDJZXGDFEXGQGOERFJEOJTTJVRVRAORRXZJTYEYY
 """
 
 letterFrequency = {
@@ -43,7 +42,7 @@ def perform_all_cipher_shifts(enc_string: str):
         enc_string = enc_string.lower()
         output_string = ""
         for character in enc_string:
-            position_of_shifted_character = alphabet.find(character) - cipher_shift
+            position_of_shifted_character = cipher_shift - alphabet.find(character)
             if character in alphabet:
                 output_string += alphabet[position_of_shifted_character]
             else:
@@ -97,7 +96,7 @@ def print_most_likely_shift(enc_string: str):
         perform_all_cipher_shifts(enc_string)
     )
     print(
-        f"""The best cipher shift was {shift_amount+1} \nYour decrypted message reads: \n{best_phrase}\n"""
+        f"""The best cipher shift was {alphabet[shift_amount+1]} \nYour decrypted message reads: \n{best_phrase}\n"""
     )
 
 
@@ -106,3 +105,7 @@ if __name__ == "__main__":
     print_all_possible_shifts(enc_string)
     print("\n--- Most Likely/Correct Shift ---\n")
     print_most_likely_shift(enc_string)
+
+    for letter in "dermatoglyphics":
+        print("\n--- Most Likely/Correct Shift ---\n")
+        print(f"The best cipher shift was {letter} \n")
